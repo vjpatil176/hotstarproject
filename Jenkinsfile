@@ -1,70 +1,58 @@
 pipeline {
     agent any
-    
     tools {
         nodejs 'nodejs'
     }
-    
+
     environment {
         SCANNER_HOME= tool 'sonar-scanner'
     }
 
     stages {
-        stage('GitClone from GitHub') {
+       stage ('Gitclone') {
             steps {
                 git 'https://github.com/vjpatil176/hotstarproject.git'
             }
         }
-        
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonarqube') {
-                    sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=Hotstarpro -Dsonar.projectName=Hotstarpro "
-                }
-            }
-        }
-        
-        stage('S3 Backup') {
-            steps {
-                sh 'aws s3 cp /var/lib/jenkins/workspace/hotstarpro/ s3://hotstarpro/hotstarpro/ --recursive'
-            }
-        }
-        
-        stage('Deploy to Tomcat') {
-            steps {
-                sh "sudo scp -o StrictHostKeyChecking=no /var/lib/jenkins/workspace/hotstarpro/package.json package-lock.json root@34.207.242.242:/root/tomcat/webapps/"
-            }
-        }
-        
-        stage('Docker Image Build&Tag') {
+        stage ('SonarQube Analysis') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
-                        sh "docker build -t adikesavanaidug2404/hotstarpro:v1 ."
+                    withSonarQubeEnv(credentialsId: 'hotstar-token') {
+                         sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=Hotstarpro -Dsonar.projectName=Hotstarpro "
                     }
                 }
             }
         }
-        
-        stage('Push Docker Image to DockerHub') {
+        stage ('S3 backup') {
             steps {
-                script {
-                    withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
-                        sh "docker push adikesavanaidug2404/hotstarpro:v1"
-                    }
+                sh 'aws s3 cp /var/lib/jenkins/workspace/hotstar-project/ s3://hotstar-backup/backup-for-pro/ --recursive'
+            }
+        }
+        stage ('deploy to tomcat') {
+            steps {
+                 sh "sudo scp -o StrictHostKeyChecking=no /var/lib/jenkins/workspace/hotstar-project/package.json package-lock.json root@44.196.59.129:/root/tomcat/webapps/"
+            }
+        }
+        stage ('Build Docker Image') {
+            steps {
+                withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
+                   sh "docker build -t vjpatil176/hotstar-project:v1 ." 
                 }
             }
         }
-        
-        stage('Deploy to DockerContainer(Run the DockerImage') {
+        stage ('Push Docker Image to DckerHub') {
             steps {
-                script {
-                    withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
-                        sh "docker run -d -p 3000:3000 adikesavanaidug2404/hotstarpro:v1 ."
-                    }
+                withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
+                   sh "docker push vjpatil176/hotstar-project:v1" 
+                }
+            }
+        }
+        stage ('deploy to Docker container') {
+            steps {
+                withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
+                   sh "docker run -d -p 3000:3000 vjpatil176/hotstar-project:v1" 
                 }
             }
         }
     }
 }
-
