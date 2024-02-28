@@ -35,21 +35,21 @@ pipeline {
         }
         stage ('Build Docker Image') {
             steps {
-                withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
+                withDockerRegistry(credentialsId: 'docker-token', tool name: 'docker') {
                    sh "docker build -t vjpatil176/hotstar-project:v1 ." 
                 }
             }
         }
         stage ('Push Docker Image to DckerHub') {
             steps {
-                withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
+                withDockerRegistry(credentialsId: 'docker-token', tool name: 'docker') {
                    sh "docker push vjpatil176/hotstar-project:v1" 
                 }
             }
         }
         stage ('deploy to Docker container') {
             steps {
-                withDockerRegistry(credentialsId: 'docker-token', toolName: 'docker') {
+                withDockerRegistry(credentialsId: 'docker-token', tool name: 'docker') {
                    sh "docker run -d -p 3000:3000 vjpatil176/hotstar-project:v1" 
                 }
             }
